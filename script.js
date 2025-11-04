@@ -115,7 +115,7 @@ const quizData = [
             "Separating your application into multiple subnets allows you to have different NSG security rules for each subnet, which can make it harder for a hacker to get from one compromised server onto another.",
             "There are only a limited number of IP addresses available per subnet, so you need multiple subnets over a certain number."
         ],
-        correct: "Separating your application into multiple subnets allows you to have different NSG security rules for each subnet, which can make it harder for a hacker to get from one compromised server onto another",
+        correct: "Separating your application into multiple subnets allows you to have different NSG security rules for each subnet, which can make it harder for a hacker to get from one compromised server onto another.",
         multi: false
     },
     {
@@ -150,7 +150,7 @@ const quizData = [
             "Application gateway understands the HTTP protocol and can interpret the URL and make decisions based on the URL.",
             "Application Gateway can be scaled so that two, three or more instances of the gateway can support your application."
         ],
-        correct: "Application gateway understands the HTTP protocol and can interpret the URL and make decisions based on the URL",
+        correct: "Application gateway understands the HTTP protocol and can interpret the URL and make decisions based on the URL.",
         multi: false
     },
     {
@@ -210,7 +210,7 @@ const quizData = [
             "By making it more difficult for attackers to breach multiple layers of security.",
             "By eliminating the need for user training."
         ],
-        correct: "By making it more difficult for attackers to breach multiple layers of security",
+        correct: "By making it more difficult for attackers to breach multiple layers of security.",
         multi: false
     },
     {
@@ -234,7 +234,7 @@ const quizData = [
             "To enforce strong password policies.",
             "To prevent unauthorized access to cloud resources."
         ],
-        correct: "To allow users to log in to multiple applications with a single set of credentials",
+        correct: "To allow users to log in to multiple applications with a single set of credentials.",
         multi: false
     },
     {
@@ -246,7 +246,7 @@ const quizData = [
             "Assume trust until proven otherwise.",
             "Security through obscurity."
         ],
-        correct: "Never trust, always verify",
+        correct: "Never trust, always verify.",
         multi: false
     },
     {
@@ -317,17 +317,17 @@ function renderQuiz() {
             const inputType = question.multi ? 'checkbox' : 'radio';
             const inputName = `question-${question.id}`;
             
+            const label = document.createElement('label');
+
             const input = document.createElement('input');
             input.type = inputType;
             input.name = inputName;
             input.value = choice;
-            input.id = `input-${question.id}-${choiceIndex}`;
-            
-            const label = document.createElement('label');
-            label.htmlFor = input.id;
-            label.textContent = choice;
-            
-            choiceElement.appendChild(input);
+            // No need for id or htmlFor when input is inside label
+
+            label.appendChild(input);
+            label.appendChild(document.createTextNode(choice));
+
             choiceElement.appendChild(label);
             choicesList.appendChild(choiceElement);
         });

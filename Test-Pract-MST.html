@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Fundamentals Quiz (MST Exam)</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for subtle interactivity and font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            padding-top: 6rem; /* Space for the fixed header */
+        }
+        .header-fixed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+        .question-card {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s;
+        }
+        .option-button {
+            transition: background-color 0.15s, transform 0.1s;
+        }
+        .option-button:not(.disabled):hover {
+            background-color: #e5e7eb; /* Light gray on hover */
+            transform: translateY(-1px);
+        }
+        /* Custom colors for feedback */
+        .correct {
+            background-color: #10b981 !important; /* Emerald 500 */
+            color: white !important;
+            border-color: #059669 !important; /* Emerald 600 */
+        }
+        .incorrect {
+            background-color: #ef4444 !important; /* Red 500 */
+            color: white !important;
+            border-color: #dc2626 !important; /* Red 600 */
+        }
+        .disabled {
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .score-message-pass {
+            background-color: #d1fae5; /* Green 100 */
+            color: #065f46; /* Green 900 */
+        }
+        .score-message-fail {
+            background-color: #fee2e2; /* Red 100 */
+            color: #991b1b; /* Red 900 */
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Fixed Timer Header -->
+    <div id="timer-header" class="header-fixed bg-indigo-700 text-white p-4 shadow-xl">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <h2 class="text-xl font-semibold">Time Remaining:</h2>
+            <div id="timer-display" class="text-3xl font-bold bg-indigo-800 px-4 py-2 rounded-lg shadow-inner">60:00</div>
+        </div>
+    </div>
+    
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-10 p-6 bg-white rounded-xl shadow-lg">
+            <br>
+            <br>
+            <br>
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">Azure Fundamentals Quiz (60 Questions)</h1>
+            <p class="text-lg text-gray-500">Test your knowledge of core cloud concepts and Azure services.</p>
+        </header>
+
+        <div id="quiz-container">
+            <!-- Questions will be dynamically inserted here -->
+        </div>
+
+        <div class="text-center my-10 p-4 rounded-xl shadow-lg hidden" id="results-card">
+            <p class="text-xl font-semibold mb-3 text-indigo-600">Quiz Completed!</p>
+            <div id="completion-message" class="p-4 rounded-lg"></div>
+        </div>
+    </div>
+
+    <script>
+        // Array containing all the quiz data (Now exactly 60 questions)
+        const quizData = [
+            {
+                q: "You are working on a preview feature and would like to receive support for the feature. Which of the following is true?",
+                o: ["Preview feature have an SLA of 99.99%", "Preview feature have an SLA of 99.95%", "Preview feature have an SLA of 99%", "Previews have reduced or different service terms"],
+                a: 3,
+                e: "Preview features are not yet guaranteed for production use, meaning they do not come with an SLA guarantee or financial backing typically associated with General Availability (GA) features."
+            },
+            {
+                q: "While working with Seneca on adopting Azure, you need to determine which of the following configurations would yield the lowest costs?",
+                o: ["Region: US DOD East, Operating System: Linux, Tier: Basic", "Region: Canada East, Operating System: Windows, Tier: Low Priority", "Region: Canada East, Operating System: Linux, Tier: Basic", "Region: US DOD East, Operating System: Windows, Tier: Standard"],
+                a: 2,
+                e: "Linux OS usually has lower licensing costs than Windows. Canada East is a standard region, likely cheaper than the specialized US DOD East region. The Basic tier is the lowest cost tier for most services."
+            },
+            {
+                q: "While working on our course projects in MST300, which of the following are Azure features we used?",
+                o: ["General Availability", "Public Preview", "Private Preview", "Hybrid Preview"],
+                a: 0,
+                e: "General Availability (GA) refers to services that are fully released and supported by Microsoft, making them suitable for production use in course projects. Public Preview services are also often used but GA is the most stable and fundamental tier."
+            },
+            {
+                q: "While working on a project, you plan on using an Azure App with a 99.95% SLA and storing the data within an Azure SQL Database (99.99% SLA) or an Azure Queue Storage (99% SLA). Which configuration will provide the greatest composite SLA value?",
+                o: ["Azure App and Azure SQL Database with 99.94% SLA", "Azure App and Azure Queue Storage with 98.95% SLA", "Azure SQL Database and Azure Queue Storage with 98.99% SLA", "Azure SQL Database only with 99.99% SLA"],
+                a: 3,
+                e: "The composite SLA for services in a chain (where if one fails, the whole application fails) is calculated by multiplying the availability. The greatest value is the highest single SLA component, which is the Azure SQL Database at 99.99%."
+            },
+            {
+                q: "You have been assigned a monthly budget for working with Azure resources. You would like to be notified when 80% of the budget has been used. Which tool would you use?",
+                o: ["Azure Advisor", "Total Cost of Ownership (TCO) calculator", "Azure Pricing Calculator", "Cost Management"],
+                a: 3,
+                e: "Azure Cost Management and Billing is the service used to track cloud usage and expenditures. Within this service, you set up budgets and configure alerts to notify you when spending hits a specific threshold (like 80%)."
+            },
+            {
+                q: "Seneca is running one instance of a web server virtual machine on Azure within the Canada East region. To ensure Seneca has a SLA of 99.99% availability, which of the following solutions would you choose while keeping costs low?",
+                o: ["Install another virtual machine instance in the same availability set", "Install another 2 virtual machines in different availability zones within the same region", "Install another virtual machine instance in the same availability zone within the same region", "Install another 2 virtual machines instance in the same availability set"],
+                a: 1,
+                e: "Availability Zones offer the 99.99% SLA guarantee by distributing VMs across physically separate data centers (fault domains) within a region. Availability Sets only guarantee 99.95%."
+            },
+            {
+                q: "You are attempting to run some virtual machines for testing and want to take advantage of Azure spot pricing for the virtual machines. What are some characteristics of this service?",
+                o: ["Provides access to discounted Azure virtual machines", "Provides flexibility in configuring a maximum spend on Azure virtual machines", "Provides the standard Service Level Agreements for Azure virtual machines", "Provides the ability to configure the Azure virtual machines to deallocate when a maximum spend is reached"],
+                a: 0, 
+                e: "Spot pricing provides significant discounts on unused Azure capacity. They are designed for interruptible workloads and do not provide the standard Azure SLA guarantee."
+            },
+            {
+                q: "Seneca’s school of ITAS are developing courses which uses Azure DevTest Labs. What are some characteristics of this service?",
+                o: ["Provision virtual machines quickly", "Provision environments based on Azure Resource Manager (ARM) templates", "Provides tools to monitor, manage alerts, and gain insights based on collected telemetry data", "Create a virtual network for each lab"],
+                a: 0,
+                e: "Azure DevTest Labs is a service that enables developers and testers to quickly create and manage virtual machines and environments using pre-configured templates, ensuring consistency and cost control."
+            },
+            {
+                q: "Which of the following command line tools works the same on Mac, Linux, and Windows systems?",
+                o: ["Azure CLI", "Azure Powershell", "Both Azure CLI and Azure Powershell", "None of the options"],
+                a: 0,
+                e: "Azure Command-Line Interface (CLI) is a cross-platform command-line tool that works universally on Windows, Linux, and macOS. Azure PowerShell is also cross-platform but is often associated with the Windows environment."
+            },
+            {
+                q: "After collecting telemetry data from Seneca’s drones, which feature in Azure Monitor can allow you to visually analyze this data?",
+                o: ["Service Health", "Metrics", "Alerts", "Application Insights"],
+                a: 1,
+                e: "Metrics are a fundamental component of Azure Monitor that collect numerical values from resources at regular intervals, which can then be visualized and charted to analyze performance and trends."
+            },
+            {
+                q: "Seneca uses several IoT devices on their campuses to gather data about the environment. Which solution would you recommend to analyze the large value of data being collected from the IoT devices?",
+                o: ["Machine Learning Service", "Application Insights", "Data Lake Analytics", "HDInsight"],
+                a: 3,
+                e: "HDInsight is a cloud service that makes it easier, faster, and more cost-effective to process massive amounts of data using open-source frameworks like Hadoop, Spark, and Kafka. Data Lake Analytics is also suitable but HDInsight covers a broader spectrum of big data processing solutions."
+            },
+            {
+                q: "To predict the student enrolment for Seneca’s school of ITAS, Seneca is considering using Machine Learning Studio. Which of the statements describe this solution?",
+                o: ["Provides a drag-and-drop visual workspace to work with machine learning solutions", "Azure Machine Learning service can manage the machine learning models created by Machine Learning Studio", "The models created by Machine Learning Studio are web services", "All of the above"],
+                a: 3,
+                e: "Azure Machine Learning Studio provides a drag-and-drop interface, creates deployable web services, and these models can be managed by the broader Azure Machine Learning service."
+            },
+            {
+                q: "You are a lab assistant for Seneca’s ITAS programs and the students are asking you to describe Azure Powershell. Which of the statements would you use to describe this service?",
+                o: ["Used to create scripts to automate Azure management tasks", "Used to manage Azure virtual machines running Windows operating systems only", "Used in a browser in the Azure Cloud Shell", "Used in Azure Resource Manager templates"],
+                a: 0,
+                e: "Azure PowerShell is primarily used to create scripts to automate Azure management tasks. While it can be used in the Cloud Shell, its main purpose is to provide automation and management capabilities."
+            },
+            {
+                q: "Seneca is using a hybrid Azure cloud infrastructure consisting of Azure virtual machines running Active Directory, SQL Database, and on-premises Webserver. They are considering using Azure Service Health. Which are some the reasons from using Azure Service Health?",
+                o: ["Notified of service outages in the region where Azure resources are deployed", "Display health incidents of a website using a webhook", "Notified when an unauthorized user access a virtual machine", "Display network performance using Windows policy manager"],
+                a: 0,
+                e: "Azure Service Health provides personalized alerts and guidance when Azure service issues (like regional outages) affect you. It tracks the health of the Azure services and regions you use."
+            },
+            {
+                q: "Seneca’s school of ITAS is expecting to move all lab environments to the cloud which will consist of over 2000 students. Before implementing this solution, you recommend evaluating Azure virtual machines for 18 months. This is an example of which subscription?",
+                o: ["Enterprise", "Free", "Pay-As-You-Go", "Student"],
+                a: 2,
+                e: "The Pay-As-You-Go subscription is the most common and flexible model for evaluating usage over a long period without a large upfront commitment, as costs are based purely on consumption."
+            },
+            {
+                q: "Which of the following provides a Lift-and-shift of an on-premises SQL server with minimal changes to an Azure Platform-as-a-Service (PaaS) solution?",
+                o: ["Azure SQL Database", "Azure SQL Managed Instance", "SQL Server on Azure VMs", "Azure Database for PostgreSQL"],
+                a: 1,
+                e: "Azure SQL Managed Instance is designed to provide near 100% compatibility with the latest on-premises SQL Server, making it the ideal PaaS solution for lift-and-shift migrations with minimal application changes."
+            },
+            {
+                q: "You are working on your MST300 project with 2 web servers running Windows Server 2019 Datacenter and 1 client running Windows 10. These 3 virtual machines are deployed in the same resource group within the same Azure region. Upon completion of your project, you delete the resource group. Which of the following explains what happens when you delete the resource?",
+                o: ["The resource metadata is deleted with no impact to the virtual machines", "All the virtual machines in the resource group are deleted", "The resource metadata is deleted and access to the virtual machines is restricted", "The virtual machines are all stopped and deallocated to prevent additional costs"],
+                a: 1,
+                e: "Deleting an Azure Resource Group deletes all resources contained within it (VMs, Disks, NICs, etc.). The resource group acts as a lifecycle boundary."
+            },
+            {
+                q: "Seneca’s SDDS and ITAS departments reside in different Azure virtual networks. Which of the following methods will allow them to connect to each other?",
+                o: ["VNet peering", "Azure ExpressRoute", "Azure Front Door", "Azure Traffic Manager"],
+                a: 0,
+                e: "VNet peering allows you to seamlessly connect two or more Virtual Networks (VNets) in Azure, allowing resources in both to communicate directly using private IP addresses."
+            },
+            {
+                q: "Which of the following Azure resources provides migration of a workload from on-premises Hyper-V host to Azure while maintaining full control over the operating system?",
+                o: ["Azure App Service", "Azure Functions", "Azure Virtual Machine", "Azure Traffic Manager"],
+                a: 2,
+                e: "Azure Virtual Machines (VMs) are an IaaS (Infrastructure-as-a-Service) offering that provides the customer with full control over the operating system, perfect for lift-and-shift migrations."
+            },
+            {
+                q: "Which of the following provides fast migration of an on-premises SQL server to Azure while retaining access to the operating system?",
+                o: ["Azure SQL Database", "Azure SQL Managed Instance", "SQL Server on Azure VMs", "Azure Database for PostgreSQL"],
+                a: 2,
+                e: "SQL Server on Azure VMs (IaaS) provides the fastest migration and retains access to the operating system because it's simply a virtual machine hosting SQL Server software."
+            },
+            {
+                q: "Seneca is seeking an explanation of availability zones. Which of the following would you use to explain availability zones?",
+                o: ["Two datacenters located in different geographies", "Two datacenters located in the same region", "Two datacenters located in different regions", "Two servers located in the same datacenter"],
+                a: 1,
+                e: "An Availability Zone is a physically separate data center within an Azure region, providing isolated failure domains."
+            },
+            {
+                q: "Seneca is moving their business critical website on 2 virtual machines to Azure. Seneca requires this website to be highly available with separate fault and update zones. Seneca also wants to ensure minimal latency between the instances. Which of the following configurations would you recommend?",
+                o: ["Separate availability zones", "Separate availability sets", "Separate regions in a regional pair", "Separate resource groups in the same region"],
+                a: 0,
+                e: "Availability Zones offer the highest SLA (99.99%) by spreading resources across separate physical data centers (fault domains) within the same region, ensuring minimal latency while maximizing availability."
+            },
+            {
+                q: "Seneca’s schools of ITAS and SDDS have their on Azure Active Directory tenants. The school of ITAS is transferring their billing ownership of a subscription to another Azure Active Directory tenant and associating the subscription with a new directory. This change will result in the following behaviours:",
+                o: ["All users and groups with role-based access to manage the subscription will lose their access", "System-assigned managed identities will lose their access but regain it automatically", "If the subscription owns an Azure Kubernetes Service (AKS) cluster, the cluster will lose functionality", "All of the above"],
+                a: 3,
+                e: "Changing the Azure AD tenant association for a subscription causes a major security boundary change, resulting in the loss of RBAC assignments, impact on managed identities, and potential loss of functionality for services like AKS."
+            },
+            {
+                q: "Seneca is running an Azure database for PostgreSQL which can scale horizontally and support query parallelization for faster responses on a large dataset. There should be minimal database and operating system management from the team. Which deployment option would you recommend?",
+                o: ["Azure database for PostgreSQL Single Server", "Azure database for PostgreSQL Flexible Server", "PostgreSQL on Azure virtual machines", "Azure database for PostgreSQL Hyperscale (Citus)"],
+                a: 3,
+                e: "Hyperscale (Citus) is the deployment option specifically designed for large-scale databases that need to scale out horizontally (sharding) and benefit from query parallelization."
+            },
+            {
+                q: "Seneca is would like the following departments to manage specific resources: Development and QA departments to manage Webapps, IT and Development departments to manage virtual machines, IT department to manage Webservers. All the departments a required to manage their own resources in both production and development environments. Which of the following resource group configuration would you recommend?",
+                o: ["Create a resource group for each department", "Create a resource group for each resource type", "Create a resource group for each environment", "Create a single resource group for all departments"],
+                a: 2,
+                e: "Resource groups should be used to manage resources that share the same lifecycle. Since resources are used in both production and development, the most logical and effective separation is by environment (e.g., `Prod_RG` and `Dev_RG`)."
+            },
+            {
+                q: "Seneca’s website is hosted on several web servers which are connected to Azure SQL Database servers. The web servers are hosted in different virtual network subnets and the database servers are exposed to the subnets. Which of the following solutions would you implement to control the types of connections to the web servers and database servers?",
+                o: ["Azure Domain Name Service", "Azure Network Security Groups", "Azure Application Security Groups", "Azure Traffic Manager"],
+                a: 1,
+                e: "Network Security Groups (NSGs) are the fundamental Azure networking component used to filter network traffic to and from Azure resources within a Virtual Network (VNet) or subnet."
+            },
+            {
+                q: "You have completed your project with 3 virtual machines where 2 of the virtual machines are web servers and the other virtual machine is a SQL database. You want to make the 2 webservers publicly accessible over HTTP on port 80 and RDP access to all the virtual machines on port 123. Which of the following Network Security Groups settings would you recommend?",
+                o: ["Restrict access to the virtual machines and allow access over port 123", "Ensure the role based access control (RBAC) for your account is Global Administrator", "Configure the web servers to be only publicly accessible on port 80", "Allow access to the SQL database on both port 80 and port 123"],
+                a: 2,
+                e: "The best practice for security is to only open the minimum required ports. For the web server, the minimum public access is HTTP on port 80. RDP access (port 123) should ideally be restricted to trusted sources, not the public internet."
+            },
+            {
+                q: "Your company is partnering with Seneca in providing a web service to potential students. There web servers experience an attack which makes the servers unavailable. Which of the following solutions will provide notification of an attack and automatically attempt to eliminate it?",
+                o: ["Azure Distributed Denial of Service (DDoS) Protection Standard", "Azure Application Service Group", "Azure Information Protection", "Azure Firewall"],
+                a: 0,
+                e: "Azure DDoS Protection Standard provides advanced monitoring and mitigation capabilities for Distributed Denial of Service (DDoS) attacks, automatically attempting to eliminate them."
+            },
+            {
+                q: "Seneca has different subscriptions and would like to restrict network traffic between these subscriptions. Which service would you recommend?",
+                o: ["Azure Network Security Group", "Azure Distributed Denial of Service (DDoS) protection", "Azure Firewall", "Azure Application Gateway"],
+                a: 2,
+                e: "Azure Firewall is a managed, cloud-based network security service that is typically deployed to centralize network rules and restrict traffic, including that between VNets or connected subscriptions."
+            },
+            {
+                q: "Azure’s Security Center provides a Regulatory Compliance dashboard which provides which of the following insights?",
+                o: ["The total assessments which pass or fail", "Overall compliance score", "Recommendations for reported threats", "Ranking of security alerts"],
+                a: 1,
+                e: "The Regulatory Compliance dashboard in Azure Security Center (now Microsoft Defender for Cloud) shows your overall compliance score based on the status of your security controls."
+            },
+            {
+                q: "When working with Azure Application Security Groups, which of the following are you attempting to achieve with this service?",
+                o: ["Control access to all instances running from the same server", "Define and implement security policies to groups of servers", "Control user access to serverless applications", "Provides a solution to create a template for deployment of application instances"],
+                a: 1,
+                e: "Application Security Groups (ASGs) allow you to group virtual machines based on their application role (e.g., 'Web Servers') and define network security rules (in an NSG) based on those groups."
+            },
+            {
+                q: "What is one strategy to slow down an attack using multiple layers of security?",
+                o: ["Defense in depth", "Azure Advisor", "Azure Security Center", "Azure Application Security Groups"],
+                a: 0,
+                e: "Defense in depth is a strategy that uses a series of layered mechanisms to slow down the advance of an attack aimed at acquiring unauthorized access to data."
+            },
+            {
+                q: "Seneca has deployed some virtual machines in Azure and would like to know more information about Azure Security Center. Which of the following would you share with Seneca?",
+                o: ["Azure Security Center provides monitoring, security recommendations, and advanced threat protection for both cloud and on-premises virtual machines", "Azure Security Center automatically discovers and assesses security for Azure resources as they are deployed", "Azure Security Center provides native integration with Windows Defender", "Azure Security Center supports only Windows operating systems"],
+                a: 0,
+                e: "Azure Security Center (now Microsoft Defender for Cloud) provides security management across your hybrid workloads (both Azure and on-premises) with monitoring and threat protection."
+            },
+            {
+                q: "To minimize the number of times of signing into Seneca services to access all the applications, Seneca has implemented",
+                o: ["Single Sign-On (SSO)", "Role Based Access Control (RBAC)", "Multi-Factor Authentication (MFA)", "Dynamic Groups"],
+                a: 0,
+                e: "Single Sign-On (SSO) is an authentication method that enables users to securely authenticate with multiple applications and websites by using just one set of credentials (one sign-in)."
+            },
+            {
+                q: "Seneca wants to ensure the Azure resources are being evaluated for compliance and any non-compliant resources are being identified. Which solution would you recommend?",
+                o: ["Azure Advisor", "Azure Monitor", "Azure Security Advisor", "Azure Policy"],
+                a: 3,
+                e: "Azure Policy is the service used to enforce standards and assess compliance for your Azure resources. It identifies resources that are non-compliant with defined rules."
+            },
+            {
+                q: "Which of the following countries has a dedicated trustee for customer data?",
+                o: ["Canada", "Brazil", "China", "South Africa"],
+                a: 2,
+                e: "Microsoft's services in China are operated by 21Vianet, which acts as the data trustee and operates the service independently from Microsoft's global network."
+            },
+            {
+                q: "Seneca is investigating how data is processed and protected. Which document would you recommend for Seneca to review?",
+                o: ["Client Access License (CAL)", "Data Protection Addendum (DPA)", "Privacy Statement", "Online Services Term (OST)"],
+                a: 1,
+                e: "The Data Protection Addendum (DPA) is a legal agreement that sets out the data processing and security terms between Microsoft and its customers, outlining how Microsoft processes and protects customer data."
+            },
+            {
+                q: "Seneca is considering implementing multi-factor authentication (MFA). What are some examples of using MFA at Seneca?",
+                o: ["Receive a text message with a code after signing on to Blackboard using a username and password", "Using your Seneca credentials to log into the student intranet", "Using a Onecard along with Seneca credentials to access lab computers", "Using a Onecard to scan into Seneca’s parking lot"],
+                a: 0,
+                e: "Multi-Factor Authentication (MFA) requires two or more verification methods from different categories. Receiving a code via text (something you have) after using a password (something you know) is a classic example of MFA."
+            },
+            {
+                q: "You are working with Seneca to deploy resources in Azure. You want to allow only virtual machines to be deployed in a specific resource group. Which of the following would you use?",
+                o: ["Policy", "Initiative", "Advisor", "Management group"],
+                a: 0,
+                e: "An Azure Policy is used to enforce rules over your resource groups and subscriptions, such as restricting which resource types (like Virtual Machines) can be deployed in a specific scope."
+            },
+            {
+                q: "Seneca students are learning about Azure Active Directory (AD) and want to know which features are available through the free license. Which of the following features are available?",
+                o: ["Company branding", "User and group management", "Self-service password change for cloud users", "Service level agreement (SLA) guarantee"],
+                a: 1,
+                e: "The Azure Active Directory (AD) Free tier includes basic features like user and group management, directory synchronization, and single sign-on for cloud apps."
+            },
+            {
+                q: "You are configuring Azure for a client and need to provide permissions to users to create resources in Azure. Which of the following are you using to assign the permissions?",
+                o: ["Role-based access control (RBAC)", "Policies", "Blueprints", "Management groups"],
+                a: 0,
+                e: "Role-based access control (RBAC) is the system used to manage who has access to Azure resources, what they can do with those resources, and what areas they can access."
+            },
+            {
+                q: "While working on resources in Azure, you want to review the security recommendations on the resources you are deploying. Which solution would provide this requirement?",
+                o: ["Advisor", "Role-based access control (RBAC)", "Subscriptions", "Network Security Group (NSG)"],
+                a: 0,
+                e: "Azure Advisor is a personalized cloud consultant that analyzes your resource configuration and usage to provide recommendations on security, high availability, performance, and cost."
+            },
+            {
+                q: "Which of the following can be used to determine Azure compliancy to General Data Protection Regulation (GDPR) in the Service Trust Portal?",
+                o: ["Audit Reports", "Compliance Manager", "Security and Compliance Center", "Documents and Resources"],
+                a: 1,
+                e: "The Compliance Manager in the Service Trust Portal helps you track, assign, and verify your organization's compliance activities and provides a centralized view of your compliance posture against regulations like GDPR."
+            },
+            {
+                q: "Seneca is working on using Azure locks on their resources. Which of the following is true?",
+                o: ["Locks can be applied to users and roles", "If multiple locks are applied at different scopes, the most restrictive inherited lock applies", "A lock applies to existing resources in its scope as well as new resources added within the scope", "Role-based access control (RBAC) can supersede locks"],
+                a: 1,
+                e: "Azure Resource Locks prevent unintended deletion or modification. If conflicting locks exist, the most restrictive lock (e.g., Delete is more restrictive than Read-Only) wins and is applied."
+            },
+            {
+                q: "Seneca is migrating its web servers from on-premises private cloud to Azure. Seneca will be using Azure Active Directory (AD) for authentication and authorization. Which of the following statements are true?",
+                o: ["Azure AD authentication and authorization requires integration with on-premises AD", "The web servers need to be registered with Azure AD to use the authentication and authorization services", "Azure AD can provide authorization through role-based access control (RBAC)", "Azure AD supports multi-factor authentication"],
+                a: 2,
+                e: "Azure AD is Microsoft's identity and access management service. It provides authorization by allowing you to define permissions using Role-Based Access Control (RBAC)."
+            },
+            {
+                q: "Seneca is setting up permissions to their web servers hosted on Azure. You are asked to explain the difference between authentication and authorization. Which of the following are true?",
+                o: ["Using a username and password are examples of authentication", "Authentication ensures an account has the required permissions to access a resource", "Authentication can use certificates to identify a person or service", "Authorization uses multi factor authentication for identification"],
+                a: 0,
+                e: "Authentication is the process of verifying a person's or service's identity, and using a username and password (or credentials) is the most common example of this."
+            },
+            {
+                q: "Seneca runs their own IIS web server and Exchange email server. Seneca wants to add additional web servers when traffic increases and decommission web servers when traffic demand decreases. What are the benefits of moving this infrastructure to the cloud?",
+                o: ["Horizontal scaling for the web server", "Add more disk space when e-mail messages increase", "Eliminate the cost of IT staff", "Provide 100% uptime of the servers"],
+                a: 0,
+                e: "The ability to automatically add (and remove) web servers to meet demand is called horizontal scaling (or scaling out). This is a core benefit of cloud elasticity."
+            },
+            {
+                q: "Seneca is choosing between adopting a public cloud infrastructure over a private cloud. What is an advantage of the public cloud over the private cloud?",
+                o: ["Costs are lower", "Higher level of customization for each tenant", "On-demand scalability", "Greater security for tenant data"],
+                a: 2,
+                e: "Public Cloud offers immediate access to vast, scalable computing resources on a pay-as-you-go basis, making on-demand scalability (elasticity) a major advantage over the capacity limitations of a private cloud."
+            },
+            {
+                q: "Seneca is planning to migrate a public website to Azure. What must be included in the plan?",
+                o: ["Deploy a VPN", "Pay monthly usage costs", "Pay to transfer all the website data to Azure", "Reduce the number of connections to the website"],
+                a: 1,
+                e: "A fundamental principle of the public cloud is the consumption-based model (pay-as-you-go). You must plan to pay monthly usage costs based on what you consume."
+            },
+            {
+                q: "Seneca is migrating their on-premise servers to Azure. Seneca will require some services being available even if an Azure data center is offline. What would you recommend when planning this migration?",
+                o: ["Fault tolerance", "Elasticity", "Scalability", "Low latency"],
+                a: 0,
+                e: "Fault tolerance (or High Availability/Disaster Recovery) is the principle of ensuring that a system can continue to operate and be available even if one component (like an entire data center or region) fails."
+            },
+            {
+                q: "Which of the following services are associated with Seneca not being responsible for any of the infrastructure hardware?",
+                o: ["SaaS", "PaaS", "IaaS", "DaaS", "SaaS and PaaS"],
+                a: 4,
+                e: "In the Software-as-a-Service (SaaS) and Platform-as-a-Service (PaaS) models, the cloud provider manages all components from the OS/Virtualization layer down to the physical hardware and networking."
+            },
+            {
+                q: "Manually increasing virtual machines when demand increases is called:",
+                o: ["Elasticity", "Fault tolerance", "Scalability", "Disaster recovery", "High availability"],
+                a: 2,
+                e: "Scalability is the ability to handle a growing amount of work. The specific act of increasing VMs (whether manual or automatic) falls under the general cloud benefit of scalability. Elasticity is the automatic, rapid version of scaling."
+            },
+            {
+                q: "Seneca uses the Infrastructure-as-a-Service (IaaS) cloud service model and is responsible for which components?",
+                o: ["Operating systems", "Applications", "Networking", "Storage"],
+                a: 0,
+                e: "With Infrastructure-as-a-Service (IaaS), the customer is responsible for the layers above the virtualization layer, including the Operating Systems and the Applications running on them."
+            },
+            {
+                q: "Which infrastructure cost is Seneca able to budget when migrating to cloud services?",
+                o: ["Operational expenses", "Capital expenses", "Both operational and capital expenses", "Neither operational and capital expenses"],
+                a: 0,
+                e: "Cloud services are primarily an Operational Expenditure (OpEx) model, meaning costs are paid over time based on usage, allowing for budgeting based on consumption."
+            },
+            {
+                q: "Seneca is interested in creating a serverless solution where execution is triggered when an HTTP request is received, payments are only made for when the code runs, and Seneca does not have to manage the application infrastructure. Which Azure service would you recommend to Seneca?",
+                o: ["Azure Functions", "Azure Virtual Machine", "Azure Database for PostgreSQL", "Azure SQL Database"],
+                a: 0,
+                e: "Azure Functions is Microsoft's primary serverless compute service. It is event-driven (triggered by HTTP), charges only for execution time, and is fully managed (no infrastructure management)."
+            },
+            {
+                q: "Seneca is interested in creating a virtual network with 7 virtual machines and no capital expenditure (CapEx) costs. What would you recommend?",
+                o: ["Hybrid", "Public", "Private", "On-Premises"],
+                a: 1,
+                e: "Moving to a Public cloud infrastructure (like Azure) is the only way to deploy virtual machines without Capital Expenditure (CapEx) costs, as you pay for consumption (OpEx)."
+            },
+            {
+                q: "Which of the following cloud service models is Seneca responsible for the least configuration and maintenance?",
+                o: ["IaaS", "PaaS", "SaaS", "Hybrid"],
+                a: 2,
+                e: "Software-as-a-Service (SaaS) requires the least configuration and maintenance from the user, as the cloud provider manages everything from the application to the underlying infrastructure."
+            },
+            {
+                q: "Seneca’s school of SDDS is considering using Platform-as-a-Service (PaaS) environment. Which of the following are Seneca’s responsibility?",
+                o: ["Operating systems", "Data", "Applications", "Storage"],
+                a: 1,
+                e: "In a Platform-as-a-Service (PaaS) model, the customer is primarily responsible for the Data and the Applications they deploy. Microsoft manages the OS, virtualization, storage, and networking."
+            },
+            {
+                q: "Which of the following is an example of Fault Tolerance?",
+                o: ["An outage in a datacenter within the Canada East region does not affect the webserver being hosted in that same region", "The webserver can handle an increase in traffic during a promotion", "The webserver will be able to failover to another region in the event of an outage", "Scaling out virtual machines to handle a temporary workload increase"],
+                a: 0,
+                e: "Fault tolerance is the ability of a system to continue working despite a localized failure. Having resources (like a web server using Availability Zones or Sets) isolated from a data center failure is the definition of fault tolerance."
+            },
+            {
+                q: "Seneca runs web servers on virtual machines (VMs) on their own physical servers. Seneca decides to migrate these VMs to Azure and the physical servers are decommissioned. What are the benefits of this migration?",
+                o: ["No upfront costs", "Increased ownership of physical infrastructure", "Pay-as-you-go consumption model", "Reduces the Service Level Agreement (SLA)"],
+                a: 0,
+                e: "Moving from on-premises servers (Capital Expenditure) to Azure (Public Cloud) converts CapEx into an Operational Expenditure model, which eliminates the need for large No upfront costs on physical hardware."
+            }
+        ];
+
+        // Global state and constants
+        const TOTAL_QUESTIONS = quizData.length;
+        const PASSING_SCORE = Math.ceil(TOTAL_QUESTIONS * 0.75); // 75% passing mark
+        let correctAnswersCount = 0;
+        let answeredQuestionsCount = 0;
+        const optionLetters = ['A', 'B', 'C', 'D', 'E'];
+        
+        // Timer variables (60 minutes = 3600 seconds)
+        const TOTAL_TIME_SECONDS = 3600; 
+        let timeLeft = TOTAL_TIME_SECONDS;
+        let timerInterval;
+
+        // Utility function to shuffle an array (Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Timer functions
+        function formatTime(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function startTimer() {
+            const timerDisplay = document.getElementById('timer-display');
+            timerDisplay.textContent = formatTime(timeLeft);
+
+            timerInterval = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = "Time's Up!";
+                    endQuiz();
+                    return;
+                }
+                timeLeft--;
+                timerDisplay.textContent = formatTime(timeLeft);
+            }, 1000);
+        }
+
+        function renderQuiz() {
+            // 1. Shuffle Questions
+            shuffleArray(quizData);
+
+            const container = document.getElementById('quiz-container');
+            container.innerHTML = quizData.map((q, qIndex) => {
+                
+                // 2. Shuffle Options and track the new correct index
+                const originalOptions = q.o.map((option, index) => ({
+                    text: option,
+                    originalIndex: index
+                }));
+                const shuffledOptions = shuffleArray(originalOptions);
+                
+                // Find the new index of the correct answer
+                const newCorrectIndex = shuffledOptions.findIndex(opt => opt.originalIndex === q.a);
+
+                // Store the new correct index on the question object (for checking later)
+                q.shuffled_a = newCorrectIndex;
+                
+                return `
+                    <div id="q-${qIndex}" class="question-card bg-white p-6 mb-8 rounded-xl border border-gray-200">
+                        <h2 class="text-xl font-semibold mb-4 text-gray-900">Question ${qIndex + 1}: ${q.q}</h2>
+                        <div class="options space-y-3">
+                            ${shuffledOptions.map((option, oIndex) => `
+                                <button
+                                    data-q-index="${qIndex}"
+                                    data-o-index="${oIndex}"
+                                    class="option-button w-full text-left p-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-700 focus:outline-none"
+                                    onclick="checkAnswer(this, ${qIndex}, ${oIndex})"
+                                >
+                                    <span class="font-bold mr-2 text-indigo-600">${optionLetters[oIndex]}.</span> ${option.text}
+                                </button>
+                            `).join('')}
+                        </div>
+                        <div id="explanation-${qIndex}" class="explanation mt-4 p-4 rounded-lg text-white font-medium hidden">
+                            <!-- Explanation will be inserted here -->
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            startTimer();
+        }
+
+        function endQuiz() {
+            clearInterval(timerInterval);
+            
+            // Disable all unanswered questions
+            document.querySelectorAll('.question-card').forEach((card, qIndex) => {
+                if (!card.classList.contains('answered')) {
+                    card.querySelectorAll('.option-button').forEach(btn => btn.classList.add('disabled'));
+                }
+            });
+
+            // Calculate score and display results
+            const scorePercentage = (correctAnswersCount / TOTAL_QUESTIONS) * 100;
+            const hasPassed = correctAnswersCount >= PASSING_SCORE;
+
+            const resultsCard = document.getElementById('results-card');
+            const completionMessageDiv = document.getElementById('completion-message');
+
+            completionMessageDiv.classList.remove('score-message-pass', 'score-message-fail');
+            resultsCard.classList.remove('hidden');
+
+            if (hasPassed) {
+                completionMessageDiv.classList.add('score-message-pass');
+                completionMessageDiv.innerHTML = `
+                    <p class="text-2xl font-bold mb-2">Congratulations, you Passed!</p>
+                    <p class="text-lg">You answered <span class="text-3xl font-extrabold">${correctAnswersCount}</span> out of ${TOTAL_QUESTIONS} questions correctly.</p>
+                    <p class="text-base font-semibold">Your Score: ${scorePercentage.toFixed(1)}% (Passing mark is 75% or ${PASSING_SCORE}/${TOTAL_QUESTIONS})</p>
+                `;
+            } else {
+                completionMessageDiv.classList.add('score-message-fail');
+                completionMessageDiv.innerHTML = `
+                    <p class="text-2xl font-bold mb-2">You Did Not Pass.</p>
+                    <p class="text-lg">You answered <span class="text-3xl font-extrabold">${correctAnswersCount}</span> out of ${TOTAL_QUESTIONS} questions correctly.</p>
+                    <p class="text-base font-semibold">Your Score: ${scorePercentage.toFixed(1)}% (Passing mark is 75% or ${PASSING_SCORE}/${TOTAL_QUESTIONS})</p>
+                `;
+            }
+        }
+
+        function checkAnswer(button, qIndex, oIndex) {
+            // Prevent checking if the quiz is over or question already answered
+            if (answeredQuestionsCount >= TOTAL_QUESTIONS) return;
+
+            const questionCard = document.getElementById(`q-${qIndex}`);
+            if (questionCard.classList.contains('answered')) return;
+            
+            const questionData = quizData.find((q, index) => index === qIndex);
+            
+            // Note: We check against the shuffled index (shuffled_a)
+            const isCorrect = oIndex === questionData.shuffled_a;
+            
+            const optionsContainer = button.closest('.options');
+            const buttons = optionsContainer.querySelectorAll('.option-button');
+            const explanationDiv = document.getElementById(`explanation-${qIndex}`);
+
+            // Mark question as answered
+            questionCard.classList.add('answered');
+            answeredQuestionsCount++;
+
+            // Update score
+            if (isCorrect) {
+                correctAnswersCount++;
+            }
+            
+            // Disable all buttons for this question
+            buttons.forEach(btn => btn.classList.add('disabled'));
+
+            // Highlight the chosen answer
+            button.classList.add(isCorrect ? 'correct' : 'incorrect');
+
+            if (isCorrect) {
+                // Display positive explanation
+                explanationDiv.classList.remove('hidden', 'bg-red-600');
+                explanationDiv.classList.add('bg-green-600');
+                explanationDiv.innerHTML = `
+                    <p class="font-bold mb-1">Correct!</p>
+                    <p class="text-sm">${questionData.e}</p>
+                `;
+            } else {
+                // Highlight the correct answer button
+                const correctButton = optionsContainer.querySelector(`[data-o-index="${questionData.shuffled_a}"]`);
+                correctButton.classList.add('correct');
+
+                // Display correction and explanation
+                explanationDiv.classList.remove('hidden', 'bg-green-600');
+                explanationDiv.classList.add('bg-red-600');
+                explanationDiv.innerHTML = `
+                    <p class="font-bold mb-1">Incorrect. The correct answer is ${optionLetters[questionData.shuffled_a]}.</p>
+                    <p class="text-sm">
+                        <span class="font-bold">Explanation:</span> ${questionData.e}
+                    </p>
+                `;
+            }
+
+            // Check if the quiz is completed
+            if (answeredQuestionsCount >= TOTAL_QUESTIONS) {
+                endQuiz();
+            }
+        }
+
+        // Initialize the quiz when the window loads
+        window.onload = renderQuiz;
+    </script>
+
+</body>
+</html>

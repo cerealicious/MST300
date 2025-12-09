@@ -12,7 +12,8 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
-            padding-top: 6rem; /* Space for the fixed header */
+            /* Increased padding to ensure the main title is visible below the fixed header */
+            padding-top: 10rem; 
         }
         .header-fixed {
             position: fixed;
@@ -55,6 +56,22 @@
             background-color: #fee2e2; /* Red 100 */
             color: #991b1b; /* Red 900 */
         }
+        
+        /* Font size adjustment for smaller screens/more compact view */
+        .question-text {
+            font-size: 1.05rem; /* Slightly smaller than default Tailwind xl */
+        }
+        .option-button-text {
+            font-size: 0.95rem; /* Smaller text for options */
+        }
+        @media (max-width: 768px) {
+             .question-text {
+                font-size: 1rem;
+            }
+            .option-button-text {
+                font-size: 0.875rem; /* Base sm text size on mobile */
+            }
+        }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -69,9 +86,6 @@
     
     <div class="max-w-4xl mx-auto">
         <header class="text-center mb-10 p-6 bg-white rounded-xl shadow-lg">
-            <br>
-            <br>
-            <br>
             <h1 class="text-4xl font-bold text-gray-800 mb-2">Azure Fundamentals Quiz (60 Questions)</h1>
             <p class="text-lg text-gray-500">Test your knowledge of core cloud concepts and Azure services.</p>
         </header>
@@ -517,7 +531,7 @@
                 
                 return `
                     <div id="q-${qIndex}" class="question-card bg-white p-6 mb-8 rounded-xl border border-gray-200">
-                        <h2 class="text-xl font-semibold mb-4 text-gray-900">Question ${qIndex + 1}: ${q.q}</h2>
+                        <h2 class="question-text font-semibold mb-4 text-gray-900">Question ${qIndex + 1}: ${q.q}</h2>
                         <div class="options space-y-3">
                             ${shuffledOptions.map((option, oIndex) => `
                                 <button
@@ -526,7 +540,7 @@
                                     class="option-button w-full text-left p-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-700 focus:outline-none"
                                     onclick="checkAnswer(this, ${qIndex}, ${oIndex})"
                                 >
-                                    <span class="font-bold mr-2 text-indigo-600">${optionLetters[oIndex]}.</span> ${option.text}
+                                    <span class="font-bold mr-2 text-indigo-600 option-button-text">${optionLetters[oIndex]}.</span> <span class="option-button-text">${option.text}</span>
                                 </button>
                             `).join('')}
                         </div>
@@ -544,7 +558,7 @@
             clearInterval(timerInterval);
             
             // Disable all unanswered questions
-            document.querySelectorAll('.question-card').forEach((card, qIndex) => {
+            document.querySelectorAll('.question-card').forEach((card) => {
                 if (!card.classList.contains('answered')) {
                     card.querySelectorAll('.option-button').forEach(btn => btn.classList.add('disabled'));
                 }
